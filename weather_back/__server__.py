@@ -18,6 +18,7 @@ class Current:
     humidity: float
     wind_speed: float
     description: str
+    icon: str
 
 
 @dataclass
@@ -28,6 +29,7 @@ class Forecast:
     low_f: float
     low_c: float
     description: str
+    icon: str
 
 
 def get_coordinates(loc: str) -> Dict[str, Union[str, int]]:
@@ -73,14 +75,15 @@ def get_forecast(lat: float, lon: float) -> Tuple[Current, List[Forecast]]:
     )
 
     current_ctx = forecast.json()["current"]
-    daily_ctx = forecast.json()["daily"][1:5]
+    daily_ctx = forecast.json()["daily"][1:6]
 
     current = Current(
-        temp_c=current_ctx["temp"],
-        temp_f=1.8 * current_ctx["temp"] + 32,
-        humidity=current_ctx["humidity"],
-        wind_speed=current_ctx["wind_speed"],
+        temp_c=round(current_ctx["temp"], 2),
+        temp_f=round(1.8 * current_ctx["temp"] + 32, 2),
+        humidity=round(current_ctx["humidity"], 2),
+        wind_speed=round(current_ctx["wind_speed"], 2),
         description=current_ctx["weather"][0]["main"],
+        icon=current_ctx["weather"][0]["icon"]
     )
 
     daily = []
@@ -88,12 +91,13 @@ def get_forecast(lat: float, lon: float) -> Tuple[Current, List[Forecast]]:
         dt = datetime.datetime.fromtimestamp(day["dt"])
         daily.append(
             Forecast(
-                high_c=day["temp"]["max"],
-                low_c=day["temp"]["min"],
-                high_f=1.8 * day["temp"]["max"] + 32,
-                low_f=1.8 * day["temp"]["min"] + 32,
+                high_c=round(day["temp"]["max"], 2),
+                low_c=round(day["temp"]["min"], 2),
+                high_f=round(1.8 * day["temp"]["max"] + 32, 2),
+                low_f=round(1.8 * day["temp"]["min"] + 32, 2),
                 date=f"{dt.day}, {dt.month}, {dt.year}",
                 description=day["weather"][0]["main"],
+                icon=day["weather"][0]["icon"]
             )
         )
 
@@ -134,8 +138,6 @@ def main() -> None:
                 "daily": daily,
             }
         )
-        # return jsonify(weather)
-        # return jsonify(coord_data)
 
     server.run(debug=True, port=8080)
 
