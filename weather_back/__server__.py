@@ -45,23 +45,16 @@ def get_coordinates(loc: str) -> Dict[str, Union[str, int]]:
             timeout=5,
         )
         loc_json = location_resp.json()
-        state = "N/A"
     else:
         # TODO: add logic to handle multiple locations returned from direct
         location_resp = requests.get(
             f"{os.environ['OW_GEO_URL']}direct?q={loc}&appid={os.environ['OW_KEY']}"
         )
         loc_json = location_resp.json()[0]
-        state = loc_json["state"]
     # TODO: add error handling for GEO call here
+    print(loc_json)
 
-    return {
-        "name": loc_json["name"],
-        "country": loc_json["country"],
-        "state": state,
-        "lon": loc_json["lon"],
-        "lat": loc_json["lat"],
-    }
+    return loc_json
 
 
 def get_forecast(lat: float, lon: float) -> Tuple[Current, List[Forecast]]:
@@ -73,7 +66,9 @@ def get_forecast(lat: float, lon: float) -> Tuple[Current, List[Forecast]]:
     forecast = requests.get(
         f"{os.environ['OW_FORECAST_URL']}lat={lat}&lon={lon}&units=metric&exclude=minutely,hourly,alerts&appid={os.environ['OW_KEY']}"
     )
+    return forecast.json()
 
+    """
     current_ctx = forecast.json()["current"]
     daily_ctx = forecast.json()["daily"][1:6]
 
@@ -102,6 +97,7 @@ def get_forecast(lat: float, lon: float) -> Tuple[Current, List[Forecast]]:
         )
 
     return (current, daily)
+    """
 
 
 def main() -> None:
@@ -127,17 +123,20 @@ def main() -> None:
         """
         coord_data = get_coordinates(loc)
 
-        current, daily = get_forecast(coord_data["lat"], coord_data["lon"])
+        # current, daily = get_forecast(coord_data["lat"], coord_data["lon"])
+        forecast = get_forecast(coord_data["lat"], coord_data["lon"])
+        print({"location": coord_data, "forecast": forecast})
+        return jsonify({"location": coord_data, "forecast": forecast})
 
-        return jsonify(
-            {
-                "name": coord_data["name"],
-                "state": coord_data["state"],
-                "country": coord_data["country"],
-                "current": current,
-                "daily": daily,
-            }
-        )
+        # return jsonify(
+        #     {
+        #         "name": coord_data["name"],
+        #         "state": coord_data["state"],
+        #         "country": coord_data["country"],
+        #         "current": current,
+        #         "daily": daily,
+        #     }
+        # )
 
     server.run(debug=True, port=8080)
 
