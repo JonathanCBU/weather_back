@@ -1,35 +1,28 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 import dotenv
-from typing import Dict, Union, Tuple, List
+from typing import Dict, Union, Any
 import re
 import requests
 import os
-from dataclasses import dataclass
-import datetime
+import argparse
 
 
-@dataclass
-class Current:
-    temp_c: float
-    temp_f: float
-    humidity: float
-    wind_speed: float
-    humidity: float
-    wind_speed: float
-    description: str
-    icon: str
+def get_args() -> argparse.Namespace:
+    """command line args"""
 
-
-@dataclass
-class Forecast:
-    date: str
-    high_f: float
-    high_c: float
-    low_f: float
-    low_c: float
-    description: str
-    icon: str
+    parser = argparse.ArgumentParser(
+        description=("Command line args for starting the flask server")
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Enable debug mode when running the app",
+    )
+    parser.add_argument("--port", help="port to run server on", default=8080)
+    args = parser.parse_args()
+    return args
 
 
 def get_coordinates(loc: str) -> Dict[str, Union[str, int]]:
@@ -41,63 +34,31 @@ def get_coordinates(loc: str) -> Dict[str, Union[str, int]]:
 
     if is_zip:
         location_resp = requests.get(
-            f"{os.environ['OW_GEO_URL']}zip?zip={loc}&appid={os.environ['OW_KEY']}",
+            f"http://api.openweathermap.org/geo/1.0/zip?zip={loc}&appid={os.environ['OW_KEY']}",
             timeout=5,
         )
         loc_json = location_resp.json()
     else:
         # TODO: add logic to handle multiple locations returned from direct
         location_resp = requests.get(
-            f"{os.environ['OW_GEO_URL']}direct?q={loc}&appid={os.environ['OW_KEY']}"
+            f"http://api.openweathermap.org/geo/1.0/direct?q={loc}&appid={os.environ['OW_KEY']}"
         )
         loc_json = location_resp.json()[0]
     # TODO: add error handling for GEO call here
-    print(loc_json)
 
     return loc_json
 
 
-def get_forecast(lat: float, lon: float) -> Tuple[Current, List[Forecast]]:
+def get_forecast(lat: float, lon: float) -> Dict[str, Any]:
     """get a 5 day forcast from the OpenWeather api
 
     :param lat: latitude
     :param lon: longitude
     """
     forecast = requests.get(
-        f"{os.environ['OW_FORECAST_URL']}lat={lat}&lon={lon}&units=metric&exclude=minutely,hourly,alerts&appid={os.environ['OW_KEY']}"
+        f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&units=metric&exclude=minutely,hourly,alerts&appid={os.environ['OW_KEY']}"
     )
     return forecast.json()
-
-    """
-    current_ctx = forecast.json()["current"]
-    daily_ctx = forecast.json()["daily"][1:6]
-
-    current = Current(
-        temp_c=round(current_ctx["temp"], 2),
-        temp_f=round(1.8 * current_ctx["temp"] + 32, 2),
-        humidity=round(current_ctx["humidity"], 2),
-        wind_speed=round(current_ctx["wind_speed"], 2),
-        description=current_ctx["weather"][0]["main"],
-        icon=current_ctx["weather"][0]["icon"]
-    )
-
-    daily = []
-    for day in daily_ctx:
-        dt = datetime.datetime.fromtimestamp(day["dt"])
-        daily.append(
-            Forecast(
-                high_c=round(day["temp"]["max"], 2),
-                low_c=round(day["temp"]["min"], 2),
-                high_f=round(1.8 * day["temp"]["max"] + 32, 2),
-                low_f=round(1.8 * day["temp"]["min"] + 32, 2),
-                date=f"{dt.day}, {dt.month}, {dt.year}",
-                description=day["weather"][0]["main"],
-                icon=day["weather"][0]["icon"]
-            )
-        )
-
-    return (current, daily)
-    """
 
 
 def main() -> None:
@@ -105,16 +66,11 @@ def main() -> None:
 
     dotenv.load_dotenv()
 
+    args = get_args()
+
     server = Flask(__name__)
-    cors = CORS(server, origins="*")
+    _ = CORS(server, origins="*")
 
-    # temp home url for testing (TODO: REMOVE)
-    @server.route("/api", methods=["GET"])
-    def home() -> Dict[str, str]:
-        """testing func"""
-        return jsonify({"hello": "world"})
-
-    # TODO: add routing functions
     @server.route("/weather/<string:loc>")
     def get_weather(loc: str) -> Dict[str, Union[str, int]]:
         """this function basically will do everything for this backend
@@ -123,22 +79,10 @@ def main() -> None:
         """
         coord_data = get_coordinates(loc)
 
-        # current, daily = get_forecast(coord_data["lat"], coord_data["lon"])
         forecast = get_forecast(coord_data["lat"], coord_data["lon"])
-        print({"location": coord_data, "forecast": forecast})
         return jsonify({"location": coord_data, "forecast": forecast})
 
-        # return jsonify(
-        #     {
-        #         "name": coord_data["name"],
-        #         "state": coord_data["state"],
-        #         "country": coord_data["country"],
-        #         "current": current,
-        #         "daily": daily,
-        #     }
-        # )
-
-    server.run(debug=True, port=8080)
+    server.run(debug=args.debug, port=args.port)
 
 
 if __name__ == "__main__":
