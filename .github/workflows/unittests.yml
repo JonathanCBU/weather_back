@@ -27,4 +27,4 @@ jobs:
           poetry install
       - name: Run Pytest
         run: |
-          poetry run tox
+          poetry run pytest
