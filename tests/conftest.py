@@ -1,6 +1,6 @@
 import time
 from multiprocessing import Process
-from typing import Dict, Iterator, List, Union
+from typing import Iterator, Union
 
 import pytest
 

@@ -24,7 +24,10 @@ def test_weather(base_server: Process) -> None:
         + f"appid={os.environ['OW_KEY']}"
     )
     weather_resp = requests.get(weather_url, timeout=5)
-    geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={loc},US&appid={os.environ['OW_KEY']}"
+    geo_url = (
+        "http://api.openweathermap.org/geo/1.0/direct?"
+        + f"q={loc},US&appid={os.environ['OW_KEY']}"
+    )
     geo_resp = requests.get(geo_url, timeout=5)
     server_resp = requests.get(
         f"http://127.0.0.1:8080/weather?loc={loc}", timeout=5
