@@ -28,3 +28,10 @@ jobs:
       - name: Run Pytest
         run: |
           poetry run pytest
+      - name: Run formatting checks
+        run: |
+          poetry run black --config pyproject.toml --check \
+          poetry run isort --sp pyproject.toml --check
+      - name: Run lint
+        run: |
+          poetry run tox -e lint
