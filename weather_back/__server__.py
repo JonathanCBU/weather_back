@@ -32,19 +32,25 @@ def get_coordinates(loc: str) -> Dict[str, Union[str, int]]:
     """
     is_zip = re.match(r"\d{5}", loc)
 
-    if is_zip:
+    if not is_zip:
+        # TODO: add logic to handle multiple locations returned from direct
+        print(loc)
+        loc = loc.replace(" ", "")
+        if "," in loc:
+            loc = loc + ",US"
+        print(loc)
+        location_resp = requests.get(
+            f"http://api.openweathermap.org/geo/1.0/direct?q={loc}&appid={os.environ['OW_KEY']}",
+            timeout=5,
+        )
+        print(location_resp.json())
+        loc_json = location_resp.json()[0]
+    else:
         location_resp = requests.get(
             f"http://api.openweathermap.org/geo/1.0/zip?zip={loc}&appid={os.environ['OW_KEY']}",
             timeout=5,
         )
         loc_json = location_resp.json()
-    else:
-        # TODO: add logic to handle multiple locations returned from direct
-        location_resp = requests.get(
-            f"http://api.openweathermap.org/geo/1.0/direct?q={loc}&appid={os.environ['OW_KEY']}",
-            timeout=5,
-        )
-        loc_json = location_resp.json()[0]
     # TODO: add error handling for GEO call here
 
     return loc_json
@@ -76,6 +82,17 @@ def get_forecast(lat: float, lon: float) -> Dict[str, Any]:
     return forecast.json()
 
 
+def create_server() -> Flask:
+    """create server object (only here to make pytest simpler)"""
+
+    server = Flask(__name__)
+
+    # origins * is risky, would not do in prod
+    _ = CORS(server, origins="*")
+
+    return server
+
+
 def main() -> None:
     """instantiate server"""
 
@@ -83,16 +100,13 @@ def main() -> None:
 
     args = get_args()
 
-    server = Flask(__name__)
-    _ = CORS(server, origins="*")
+    server = create_server()
 
-    @server.route("/weather/<string:loc>")
-    def get_weather(loc: str) -> Dict[str, Union[str, Any]]:
-        """this function basically will do everything for this backend
-
-        :param loc: either city/town name or zip code
-        """
-        coord_data = get_coordinates(loc)
+    @server.route("/weather")
+    def get_weather() -> Dict[str, Union[str, Any]]:
+        """this function basically will do everything for this backend"""
+        query = request.args.get("loc")
+        coord_data = get_coordinates(query)
 
         forecast = get_forecast(coord_data["lat"], coord_data["lon"])
         return jsonify({"location": coord_data, "forecast": forecast})
