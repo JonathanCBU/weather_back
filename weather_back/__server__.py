@@ -1,11 +1,12 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import dotenv
-from typing import Dict, Union, Any
+from typing import Dict, Union, Any, Tuple
 import re
 import requests
 import os
 import argparse
+import werkzeug
 
 
 def get_args() -> argparse.Namespace:
@@ -82,13 +83,64 @@ def get_forecast(lat: float, lon: float) -> Dict[str, Any]:
     return forecast.json()
 
 
-def create_server() -> Flask:
+def create_server(config: Dict[str, Any] = {}) -> Flask:
     """create server object (only here to make pytest simpler)"""
 
     server = Flask(__name__)
 
+    if config:
+        server.config.from_mapping(config)
+
     # origins * is risky, would not do in prod
     _ = CORS(server, origins="*")
+
+    @server.route("/weather")
+    def get_weather() -> Tuple[Dict[str, Union[str, Any]], int]:
+        """this function basically will do everything for this backend"""
+        query = request.args.get("loc")
+        coord_data = get_coordinates(query)
+
+        forecast = get_forecast(coord_data["lat"], coord_data["lon"])
+        return jsonify({"location": coord_data, "forecast": forecast})
+
+    @server.route("/coordinates")
+    def get_weather_with_coords() -> Tuple[Dict[str, Union[str, Any]], int]:
+        """get weather with coords directly input"""
+
+        lat = request.args.get("lat")
+        lon = request.args.get("lon")
+
+        # TODO: error handling for None return of lat and lon
+        coord_data = get_reverse_geoloc(lat, lon)
+        forecast = get_forecast(lat, lon)
+        return jsonify({"location": coord_data, "forecast": forecast})
+
+    @server.errorhandler(werkzeug.exceptions.BadRequest)
+    def handle_bad_request(error: Exception) -> Tuple[Dict[str, Union[str, Any]], int]:
+        """Bubble up errors to client"""
+        return ({"error": error}, 404)
+
+    @server.errorhandler(werkzeug.exceptions.BadRequest)
+    def handle_bad_request(error: Exception) -> Tuple[Dict[str, Union[str, Any]], int]:
+        """Bubble up errors to client"""
+        bad_request = request.base_url
+        return (
+            {
+                "error": error,
+                "msg": "Request not understood",
+                "request": request.base_url,
+            },
+            404,
+        )
+
+    @server.errorhandler(werkzeug.exceptions.InternalServerError)
+    def handle_server_error(error: Exception) -> Tuple[Dict[str, Union[str, Any]], int]:
+        """Bubble up errors to client"""
+
+        return (
+            {"error": error, "msg": "Flask server error", "request": request.base_url},
+            500,
+        )
 
     return server
 
@@ -101,27 +153,6 @@ def main() -> None:
     args = get_args()
 
     server = create_server()
-
-    @server.route("/weather")
-    def get_weather() -> Dict[str, Union[str, Any]]:
-        """this function basically will do everything for this backend"""
-        query = request.args.get("loc")
-        coord_data = get_coordinates(query)
-
-        forecast = get_forecast(coord_data["lat"], coord_data["lon"])
-        return jsonify({"location": coord_data, "forecast": forecast})
-
-    @server.route("/coordinates")
-    def get_weather_with_coords() -> Dict[str, Union[str, Any]]:
-        """get weather with coords directly input"""
-
-        lat = request.args.get("lat")
-        lon = request.args.get("lon")
-
-        # TODO: error handling for None return of lat and lon
-        coord_data = get_reverse_geoloc(lat, lon)
-        forecast = get_forecast(lat, lon)
-        return jsonify({"location": coord_data, "forecast": forecast})
 
     server.run(debug=args.debug, port=args.port)
 

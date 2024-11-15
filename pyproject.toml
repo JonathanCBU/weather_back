@@ -18,7 +18,23 @@ python-dotenv = "^1.0.1"
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.29.0"
 pytest = "^8.3.3"
+black = { version = "^22.12.0", allow-prereleases = true }
+isort = { extras = ["colors"], version = "^5.11.4" }
+tox = "^4.16.0"
+flake8 = "^7.1.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+target-version = ["py310"]
+line-length = 79
+color = true
+
+[tool.isort]
+py_version = 310
+line_length = 79
+profile = "black"
+color_output = true
+indent = 4
