@@ -1,0 +1,31 @@
+name: On Push
+
+on: push
+
+jobs:
+  tag-version-checks:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.verify-tag.outputs.tag }}
+    env:
+      PYTHON_VERSION: 3.10.12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+      - name: Install project with poetry
+        run: |
+          poetry install
+      - name: Run Pytest
+        run: |
+          poetry run pytest

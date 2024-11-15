@@ -1,12 +1,13 @@
+import argparse
+import os
+import re
+from typing import Any, Dict, Tuple, Union
+
+import dotenv
+import requests
+import werkzeug
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import dotenv
-from typing import Dict, Union, Any, Tuple
-import re
-import requests
-import os
-import argparse
-import werkzeug
 
 
 def get_args() -> argparse.Namespace:
@@ -41,14 +42,16 @@ def get_coordinates(loc: str) -> Dict[str, Union[str, int]]:
             loc = loc + ",US"
         print(loc)
         location_resp = requests.get(
-            f"http://api.openweathermap.org/geo/1.0/direct?q={loc}&appid={os.environ['OW_KEY']}",
+            "http://api.openweathermap.org/geo/1.0/direct?"
+            + f"q={loc}&appid={os.environ['OW_KEY']}",
             timeout=5,
         )
         print(location_resp.json())
         loc_json = location_resp.json()[0]
     else:
         location_resp = requests.get(
-            f"http://api.openweathermap.org/geo/1.0/zip?zip={loc}&appid={os.environ['OW_KEY']}",
+            "http://api.openweathermap.org/geo/1.0/zip?"
+            + f"zip={loc}&appid={os.environ['OW_KEY']}",
             timeout=5,
         )
         loc_json = location_resp.json()
@@ -64,7 +67,8 @@ def get_reverse_geoloc(lat: float, lon: float) -> Dict[str, Any]:
     :param lon: longitude
     """
     location_resp = requests.get(
-        f"http://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={lon}&limit=1&appid={os.environ['OW_KEY']}",
+        "http://api.openweathermap.org/geo/1.0/reverse?"
+        + f"lat={lat}&lon={lon}&limit=1&appid={os.environ['OW_KEY']}",
         timeout=5,
     )
     return location_resp.json()[0]
@@ -77,7 +81,9 @@ def get_forecast(lat: float, lon: float) -> Dict[str, Any]:
     :param lon: longitude
     """
     forecast = requests.get(
-        f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&units=metric&exclude=minutely,hourly,alerts&appid={os.environ['OW_KEY']}",
+        "https://api.openweathermap.org/data/3.0/onecall?"
+        + f"lat={lat}&lon={lon}&units=metric&exclude=minutely,hourly,alerts&"
+        + f"appid={os.environ['OW_KEY']}",
         timeout=5,
     )
     return forecast.json()
@@ -116,14 +122,10 @@ def create_server(config: Dict[str, Any] = {}) -> Flask:
         return jsonify({"location": coord_data, "forecast": forecast})
 
     @server.errorhandler(werkzeug.exceptions.BadRequest)
-    def handle_bad_request(error: Exception) -> Tuple[Dict[str, Union[str, Any]], int]:
+    def handle_bad_request(
+        error: Exception,
+    ) -> Tuple[Dict[str, Union[str, Any]], int]:
         """Bubble up errors to client"""
-        return ({"error": error}, 404)
-
-    @server.errorhandler(werkzeug.exceptions.BadRequest)
-    def handle_bad_request(error: Exception) -> Tuple[Dict[str, Union[str, Any]], int]:
-        """Bubble up errors to client"""
-        bad_request = request.base_url
         return (
             {
                 "error": error,
@@ -134,11 +136,17 @@ def create_server(config: Dict[str, Any] = {}) -> Flask:
         )
 
     @server.errorhandler(werkzeug.exceptions.InternalServerError)
-    def handle_server_error(error: Exception) -> Tuple[Dict[str, Union[str, Any]], int]:
+    def handle_server_error(
+        error: Exception,
+    ) -> Tuple[Dict[str, Union[str, Any]], int]:
         """Bubble up errors to client"""
 
         return (
-            {"error": error, "msg": "Flask server error", "request": request.base_url},
+            {
+                "error": error,
+                "msg": "Flask server error",
+                "request": request.base_url,
+            },
             500,
         )
 
@@ -155,7 +163,3 @@ def main() -> None:
     server = create_server()
 
     server.run(debug=args.debug, port=args.port)
-
-
-if __name__ == "__main__":
-    main()

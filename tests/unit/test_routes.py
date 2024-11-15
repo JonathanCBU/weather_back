@@ -1,7 +1,8 @@
-import requests
 import os
-import dotenv
 from multiprocessing import Process
+
+import dotenv
+import requests
 
 
 def test_weather(base_server: Process) -> None:
@@ -20,7 +21,9 @@ def test_weather(base_server: Process) -> None:
     weather_resp = requests.get(weather_url, timeout=5)
     geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={loc},US&appid={os.environ['OW_KEY']}"
     geo_resp = requests.get(geo_url, timeout=5)
-    server_resp = requests.get(f"http://127.0.0.1:8080/weather?loc={loc}", timeout=5)
+    server_resp = requests.get(
+        f"http://127.0.0.1:8080/weather?loc={loc}", timeout=5
+    )
 
     server_json = server_resp.json()
 
