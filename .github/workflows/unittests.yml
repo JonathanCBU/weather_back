@@ -27,4 +27,4 @@ jobs:
           poetry install
       - name: Run Pytest
         run: |
-          poetry run tox
+          OW_KEY=${{ secrets.OW_KEY }} poetry run tox
