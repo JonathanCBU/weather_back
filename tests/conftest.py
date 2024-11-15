@@ -7,6 +7,15 @@ import pytest
 from weather_back.__server__ import create_server
 
 
+def pytest_configure() -> None:
+    pytest.gloucester = {
+        "query": "Gloucester,MA",
+        "lat": 42.6208,
+        "lon": -70.6721,
+        "z_code": "01930",
+    }
+
+
 @pytest.fixture
 def base_server() -> Iterator[Union[Process, str]]:
     """launch server before testing"""

@@ -27,7 +27,7 @@ jobs:
           poetry install
       - name: Run Pytest
         run: |
-          poetry run pytest
+          poetry run pytest -vv
       - name: Run formatting checks
         run: |
           poetry run black --config pyproject.toml --check weather_back; \
