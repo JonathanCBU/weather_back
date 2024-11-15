@@ -3,12 +3,11 @@ name: On Push
 on: push
 
 jobs:
-  tag-version-checks:
+  tox:
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.verify-tag.outputs.tag }}
     env:
       PYTHON_VERSION: 3.10.12
+      OW_KEY: ${{ secrets.OW_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,4 +27,4 @@ jobs:
           poetry install
       - name: Run Pytest
         run: |
-          poetry run pytest
+          poetry run tox
