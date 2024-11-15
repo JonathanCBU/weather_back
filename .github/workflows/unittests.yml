@@ -1,9 +1,9 @@
 name: On Push
-
 on: push
 
 jobs:
   tox:
+    environment: Testing
     runs-on: ubuntu-latest
     env:
       PYTHON_VERSION: 3.10.12
@@ -27,4 +27,4 @@ jobs:
           poetry install
       - name: Run Pytest
         run: |
-          poetry run OW_KEY=${{ secrets.OW_KEY }} tox
+          poetry run tox
